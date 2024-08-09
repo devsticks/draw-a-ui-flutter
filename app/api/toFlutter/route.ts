@@ -1,9 +1,10 @@
 import { OpenAI } from "openai";
 
-const systemPrompt = `You are an expert tailwind developer. A user will provide you with a
- low-fidelity wireframe of an application and you will return 
- a single html file that uses tailwind to create the website. Use creative license to make the application more fleshed out.
-if you need to insert an image, use placehold.co to create a placeholder image. Respond only with the html file.`;
+const systemPrompt = `You are a world-class Flutter developer. A user will provide you with a
+ low-fidelity wireframe of an application and you will return a single dart file that uses Flutter to create the app. 
+ Use creative license to flesh the application out, with awesome-looking UI and actual behaviour that follows the logic of what you're given.
+if you need to insert an image, use placehold.co to create a placeholder image. Respond only with the dart file.`;
+
 
 export async function POST(request: Request) {
   const openai = new OpenAI();
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
           },
           {
             type: "text",
-            text: "Turn this into a single html file using tailwind.",
+            text: "Generate a Flutter app from this image.",
           },
         ],
       },

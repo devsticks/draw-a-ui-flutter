@@ -7,19 +7,19 @@ import { getSvgAsImage } from "@/lib/getSvgAsImage";
 import { blobToBase64 } from "@/lib/blobToBase64";
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import { PreviewModal } from "@/components/PreviewModal";
+import { FlutterPreviewModal } from "@/components/FlutterPreviewModal";
 
 const Tldraw = dynamic(async () => (await import("@tldraw/tldraw")).Tldraw, {
   ssr: false,
 });
 
 export default function Home() {
-  const [html, setHtml] = useState<null | string>(null);
+  const [flutterCode, setFlutterCode] = useState<null | string>(null);
 
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setHtml(null);
+        setFlutterCode(null);
       }
     };
     window.addEventListener("keydown", listener);
@@ -33,17 +33,17 @@ export default function Home() {
     <>
       <div className={`w-screen h-screen`}>
         <Tldraw persistenceKey="tldraw">
-          <ExportButton setHtml={setHtml} />
+          <ExportButton setFlutterCode={setFlutterCode} />
         </Tldraw>
       </div>
-      {html &&
+      {flutterCode &&
         ReactDOM.createPortal(
           <div
             className="fixed top-0 left-0 right-0 bottom-0 flex justify-center items-center"
             style={{ zIndex: 2000, backgroundColor: "rgba(0,0,0,0.5)" }}
-            onClick={() => setHtml(null)}
+            onClick={() => setFlutterCode(null)}
           >
-            <PreviewModal html={html} setHtml={setHtml} />
+            <FlutterPreviewModal flutterCode={flutterCode} setFlutterCode={setFlutterCode} />
           </div>,
           document.body
         )}
@@ -51,7 +51,7 @@ export default function Home() {
   );
 }
 
-function ExportButton({ setHtml }: { setHtml: (html: string) => void }) {
+function ExportButton({ setFlutterCode }: { setFlutterCode: (code: string) => void }) {
   const editor = useEditor();
   const [loading, setLoading] = useState(false);
   // A tailwind styled button that is pinned to the bottom right of the screen
@@ -73,7 +73,7 @@ function ExportButton({ setHtml }: { setHtml: (html: string) => void }) {
             scale: 1,
           });
           const dataUrl = await blobToBase64(png!);
-          const resp = await fetch("/api/toHtml", {
+          const resp = await fetch("/api/toFlutter", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -84,15 +84,22 @@ function ExportButton({ setHtml }: { setHtml: (html: string) => void }) {
           const json = await resp.json();
 
           if (json.error) {
-            alert("Error from open ai: " + JSON.stringify(json.error));
+            alert("Error from OpenAI: " + JSON.stringify(json.error));
             return;
           }
 
           const message = json.choices[0].message.content;
-          const start = message.indexOf("<!DOCTYPE html>");
-          const end = message.indexOf("</html>");
-          const html = message.slice(start, end + "</html>".length);
-          setHtml(html);
+          const start = message.indexOf(`\`\`\`dart`);
+          console.log(start);
+          let end = message.indexOf(`}\`\`\``);
+          if (end != -1) { end += 1; }
+          else { end = message.indexOf(`}\n\`\`\``); }
+          if (end != -1) { end += 2; }
+          else { end = message.length; }
+          console.log(end);
+          const flutterCode = message.slice(start + `\`\`\`dart`.length, end).trim();
+          console.log(flutterCode);
+          setFlutterCode(flutterCode);
         } finally {
           setLoading(false);
         }
